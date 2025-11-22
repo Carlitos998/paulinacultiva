@@ -1,0 +1,134 @@
+/* src/index.css */
+:root {
+  --fondo: #f9f2ec;
+  --principal: #d13727;
+  --oscuro: #8b1e14;
+  --claro: #f76c5e;
+  --text: #3d3d3d;
+  --muted: #444;
+  --paper: #ffffff;
+  --divider: #f0dad5;
+  --shadow: rgba(0,0,0,0.1);
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  background: var(--fondo);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Animación para toasts */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.animate-slideIn { animation: slideIn 0.3s ease-out; }
+
+/* Forzar outline/hover/focus para inputs MUI y no-MUI */
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--principal) !important;
+}
+.MuiInputLabel-root.Mui-focused {
+  color: var(--principal) !important;
+}
+
+/* Botones primarios */
+.MuiButton-containedPrimary {
+  background-color: var(--principal) !important;
+  color: #fff !important;
+}
+.MuiButton-containedPrimary:hover {
+  background-color: var(--oscuro) !important;
+}
+
+/* Autofill (Chrome) */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px var(--paper) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* Tooltip */
+.MuiTooltip-tooltip {
+  background-color: var(--oscuro) !important;
+  color: #fff !important;
+}
+
+/* Component base fallback */
+.card, .paper {
+  background: var(--paper);
+  box-shadow: 0 6px 20px var(--shadow);
+  border: 1px solid var(--divider);
+  color: var(--text);
+}
+
+/* Inputs nativos fallback */
+input, textarea {
+  border: 1px solid var(--divider);
+  color: var(--oscuro);
+  background: #fff;
+}
+
+/* Enlaces */
+a, .link { color: var(--principal); text-decoration: none; }
+
+/* Textos secundario */
+.small-muted, .muted { color: var(--muted); }
+/* ===================== FORZAS FINALES ===================== */
+/* Cover MUI contained & global contained variants */
+button.MuiButton-containedPrimary,
+.MuiButton-root.MuiButton-containedPrimary,
+button.MuiButton-contained {
+  background-color: var(--principal) !important;
+  color: #fff !important;
+}
+
+/* Hover states */
+button.MuiButton-containedPrimary:hover,
+.MuiButton-root.MuiButton-containedPrimary:hover,
+button.MuiButton-contained:hover {
+  background-color: var(--oscuro) !important;
+}
+
+/* Asegura que los TextField use el color principal en focus/hover (otra especificidad) */
+.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: var(--principal) !important;
+}
+
+/* Forzar label enfocado */
+.MuiInputLabel-root.Mui-focused {
+  color: var(--principal) !important;
+}
+
+/* Forzar MUI Link/anchor color (caso de reglas globales tipo a { color: blue }) */
+a, a:link, a:visited, .MuiTypography-root a {
+  color: var(--principal) !important;
+  text-decoration: none !important;
+}
+
+/* Forzar que los Link de MUI (component={RouterLink}) hereden el primary */
+.MuiLink-root {
+  color: var(--principal) !important;
+}
+
+/* Autofill final (Chrome) */
+input:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px var(--paper) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
+}
+
+/* Tooltip final */
+.MuiTooltip-tooltip {
+  background-color: var(--oscuro) !important;
+  color: #fff !important;
+}

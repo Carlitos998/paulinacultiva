@@ -1,0 +1,458 @@
+// src/components/NewPost.jsx
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Paper,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Grid,
+  Chip,
+  InputAdornment,
+  MenuItem
+} from '@mui/material';
+import { ChevronLeft, Camera, Clock, Users, ChefHat, X } from 'lucide-react';
+import axios from 'axios';
+import { useToast, ToastContainer } from './Toast';
+import { COLORS } from '../utils/colors';
+import { TAGS } from '../utils/constants';
+
+export default function NewPost() {
+  const navigate = useNavigate();
+  const { toasts, showToast, closeToast, removeToast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  const [form, setForm] = useState({
+    titulo: '',
+    contenido: '',
+    tiempoPreparacion: '',
+    dificultad: '',
+    porciones: '',
+    selectedTags: [],
+    foto: null,
+    fotoPreview: null
+  });
+
+  const [errors, setErrors] = useState({});
+
+  const handleTagToggle = (tagId) => {
+    setForm(prev => ({
+      ...prev,
+      selectedTags: prev.selectedTags.includes(tagId)
+        ? prev.selectedTags.filter(id => id !== tagId)
+        : [...prev.selectedTags, tagId]
+    }));
+  };
+
+  const handlePhotoChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        showToast('La foto no puede superar los 5MB', 'error', 3000);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setForm(prev => ({
+          ...prev,
+          foto: file,
+          fotoPreview: reader.result
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!form.titulo.trim()) {
+      newErrors.titulo = 'El título es obligatorio';
+    }
+
+    if (!form.contenido.trim()) {
+      newErrors.contenido = 'La descripción es obligatoria';
+    }
+
+    if (!form.tiempoPreparacion || form.tiempoPreparacion <= 0) {
+      newErrors.tiempoPreparacion = 'El tiempo de preparación es obligatorio';
+    }
+
+    if (!form.dificultad) {
+      newErrors.dificultad = 'La dificultad es obligatoria';
+    }
+
+    if (!form.porciones || form.porciones <= 0) {
+      newErrors.porciones = 'El número de porciones es obligatorio';
+    }
+
+    if (form.selectedTags.length === 0) {
+      newErrors.selectedTags = 'Debes seleccionar al menos una etiqueta';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (field, value) => {
+    setForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
+      showToast('Por favor completá todos los campos obligatorios', 'error', 3000);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+
+      // Crear FormData para subir la foto
+      const formData = new FormData();
+      formData.append('titulo', form.titulo);
+      formData.append('contenido', form.contenido);
+      formData.append('tiempoPreparacion', form.tiempoPreparacion);
+      formData.append('dificultad', form.dificultad);
+      formData.append('porciones', form.porciones);
+      formData.append('etiquetas', JSON.stringify(form.selectedTags));
+      if (form.foto) {
+        formData.append('foto', form.foto);
+      }
+
+      const { data } = await axios.post(
+        'http://localhost:3000/posts',
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+
+      showToast('¡Receta publicada exitosamente! 🎉', 'success', 2500);
+
+      setTimeout(() => {
+        navigate('/inicio');
+        window.location.reload();
+      }, 2000);
+
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || 'Error al publicar la receta';
+      showToast(errorMsg, 'error', 4000);
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <ToastContainer toasts={toasts} closeToast={closeToast} removeToast={removeToast} />
+
+      <Box sx={{ minHeight: '100vh', bgcolor: COLORS.fondoClaro }}>
+        {/* Header */}
+        <AppBar
+          position="static"
+          sx={{
+            bgcolor: COLORS.paperBg,
+            color: COLORS.bodyText,
+            boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)'
+          }}
+        >
+          <Toolbar>
+            <IconButton
+              onClick={() => navigate('/inicio')}
+              sx={{ mr: 2, color: COLORS.mutedText }}
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </IconButton>
+            <ChefHat className="w-8 h-8 mr-2" style={{ color: COLORS.principal }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, color: COLORS.principal }}>
+              Nueva Receta
+            </Typography>
+          </Toolbar>
+        </AppBar>
+
+        {/* Formulario */}
+        <Box sx={{ maxWidth: 600, mx: 'auto', p: 3, pb: 8 }}>
+          <Paper elevation={2} sx={{ p: 4, borderRadius: 2 }}>
+            <Typography variant="h5" sx={{ mb: 3, textAlign: 'center' }}>
+              Nueva Receta
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Foto */}
+              <Box>
+                <Typography variant="subtitle1" sx={{ mb: 2, color: COLORS.bodyText, fontWeight: 600 }}>
+                  📷 Foto
+                </Typography>
+                <Box sx={{ border: errors.foto ? `2px solid ${COLORS.error}` : `2px dashed ${COLORS.divider}`, borderRadius: 2, p: 2, textAlign: 'center' }}>
+                  {form.fotoPreview ? (
+                    <Box sx={{ position: 'relative' }}>
+                      <img
+                        src={form.fotoPreview}
+                        alt="Preview"
+                        style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: 1 }}
+                      />
+                      <IconButton
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          bgcolor: COLORS.paperBg,
+                          '&:hover': { bgcolor: COLORS.fondoClaro }
+                        }}
+                        onClick={() => setForm(prev => ({ ...prev, foto: null, fotoPreview: null }))}
+                      >
+                        <X className="w-4 h-4" />
+                      </IconButton>
+                    </Box>
+                  ) : (
+                    <Box sx={{ py: 4, cursor: 'pointer' }} onClick={() => document.getElementById('foto-input').click()}>
+                      <Camera className="w-12 h-12 mx-auto mb-2" style={{ color: COLORS.mutedText }} />
+                      <Typography variant="body2" color={COLORS.mutedText}>
+                        Haz clic para subir una foto
+                      </Typography>
+                      <Typography variant="caption" color={COLORS.mutedText}>
+                        Máximo 5MB
+                      </Typography>
+                    </Box>
+                  )}
+                  <input
+                    id="foto-input"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handlePhotoChange}
+                  />
+                </Box>
+                {errors.foto && (
+                  <Typography variant="caption" color={COLORS.error} sx={{ mt: 1 }}>
+                    {errors.foto}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Título */}
+              <TextField
+                label="Título *"
+                value={form.titulo}
+                onChange={(e) => handleChange('titulo', e.target.value)}
+                fullWidth
+                required
+                error={!!errors.titulo}
+                helperText={errors.titulo}
+                InputProps={{
+                  sx: { '& label.Mui-focused': { color: COLORS.principal } }
+                }}
+              />
+
+              {/* Campos adicionales */}
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Tiempo de preparación *"
+                    type="number"
+                    placeholder="Ej: 30"
+                    value={form.tiempoPreparacion}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || (Number(value) > 0 && Number(value) <= 999)) {
+                        handleChange('tiempoPreparacion', value);
+                      }
+                    }}
+                    fullWidth
+                    required
+                    error={!!errors.tiempoPreparacion}
+                    helperText={errors.tiempoPreparacion}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Clock className="w-4 h-4" style={{ color: COLORS.mutedText }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          min
+                        </InputAdornment>
+                      ),
+                      inputProps: { min: 1, max: 999 }
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Porciones *"
+                    type="number"
+                    placeholder="Ej: 4"
+                    value={form.porciones}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || (Number(value) > 0 && Number(value) <= 50)) {
+                        handleChange('porciones', value);
+                      }
+                    }}
+                    fullWidth
+                    required
+                    error={!!errors.porciones}
+                    helperText={errors.porciones}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Users className="w-4 h-4" style={{ color: COLORS.mutedText }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          personas
+                        </InputAdornment>
+                      ),
+                      inputProps: { min: 1, max: 50 }
+                    }}
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Dificultad */}
+              <TextField
+                label="Dificultad *"
+                select
+                value={form.dificultad}
+                onChange={(e) => handleChange('dificultad', e.target.value)}
+                fullWidth
+                required
+                error={!!errors.dificultad}
+                helperText={errors.dificultad}
+                SelectProps={{
+                  MenuProps: {
+                    PaperProps: {
+                      sx: {
+                        bgcolor: COLORS.paperBg,
+                        '& .MuiMenuItem-root': {
+                          color: COLORS.bodyText,
+                          '&:hover': {
+                            bgcolor: COLORS.fondoClaro,
+                          },
+                          '&.Mui-selected': {
+                            bgcolor: `${COLORS.principal}20`,
+                            color: COLORS.principal,
+                          },
+                        }
+                      }
+                    }
+                  }
+                }}
+              >
+                <MenuItem value="">Selecciona la dificultad</MenuItem>
+                <MenuItem value="facil">Fácil</MenuItem>
+                <MenuItem value="medio">Medio</MenuItem>
+                <MenuItem value="dificil">Difícil</MenuItem>
+              </TextField>
+
+              {/* Etiquetas */}
+              <Box>
+                <Typography variant="subtitle1" sx={{ mb: 2, color: COLORS.bodyText, fontWeight: 600 }}>
+                  🏷️ Etiquetas
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                  {TAGS.map((tag) => (
+                    <Chip
+                      key={tag.id}
+                      label={tag.name}
+                      clickable
+                      onClick={() => handleTagToggle(tag.id)}
+                      color={form.selectedTags.includes(tag.id) ? 'primary' : 'default'}
+                      variant={form.selectedTags.includes(tag.id) ? 'filled' : 'outlined'}
+                      sx={{
+                        backgroundColor: form.selectedTags.includes(tag.id) ? tag.color : COLORS.paperBg,
+                        color: form.selectedTags.includes(tag.id) ? COLORS.white : COLORS.bodyText,
+                        borderColor: tag.color,
+                        '&:hover': {
+                          backgroundColor: form.selectedTags.includes(tag.id) ? tag.color : `${tag.color}20`,
+                        }
+                      }}
+                    />
+                  ))}
+                </Box>
+                {errors.selectedTags && (
+                  <Typography variant="caption" color={COLORS.error} sx={{ mt: 1 }}>
+                    {errors.selectedTags}
+                  </Typography>
+                )}
+                {form.selectedTags.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" color={COLORS.mutedText} sx={{ mb: 1 }}>
+                      Etiquetas seleccionadas:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {form.selectedTags.map(tagId => {
+                        const tag = TAGS.find(t => t.id === tagId);
+                        return (
+                          <Chip
+                            key={tagId}
+                            label={tag.name}
+                            onDelete={() => handleTagToggle(tagId)}
+                            size="small"
+                            sx={{
+                              backgroundColor: tag.color,
+                              color: COLORS.white,
+                              '& .MuiChip-deleteIcon': { color: COLORS.white }
+                            }}
+                          />
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Contenido */}
+              <TextField
+                label="Descripción *"
+                value={form.contenido}
+                onChange={(e) => handleChange('contenido', e.target.value)}
+                multiline
+                rows={6}
+                fullWidth
+                required
+                error={!!errors.contenido}
+                helperText={errors.contenido}
+                placeholder="Describe tu receta, ingredientes, instrucciones..."
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+              <Button
+                onClick={() => navigate('/inicio')}
+                variant="outlined"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                variant="contained"
+                disabled={loading}
+                sx={{
+                  bgcolor: COLORS.principal,
+                  '&:hover': { bgcolor: COLORS.oscuro }
+                }}
+              >
+                {loading ? 'Publicando...' : 'Publicar'}
+              </Button>
+            </Box>
+          </Paper>
+        </Box>
+      </Box>
+    </>
+  );
+}
